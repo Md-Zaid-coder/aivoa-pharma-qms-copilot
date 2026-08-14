@@ -1,0 +1,19 @@
+"""
+Requirements for the AIVOA Pharma QMS Backend (Python FastAPI + LangGraph)
+
+Install with:
+    pip install -r requirements.txt
+
+Then set your Groq API key:
+    export GROQ_API_KEY="your-groq-api-key-here"
+
+Run the server:
+    uvicorn main:app --reload --port 8000
+"""
+
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+langgraph==0.2.23
+langchain-groq==0.1.9
+langchain-core==0.2.34
+pydantic==2.9.0

@@ -1,20 +1,4 @@
-import { useState } from "react";
-import { 
-  FlaskConical, 
-  Hash, 
-  Factory, 
-  Phone, 
-  AlertTriangle, 
-  FileText, 
-  Sparkles, 
-  Loader2, 
-  Zap, 
-  Save, 
-  Upload, 
-  Paperclip, 
-  File, 
-  X 
-} from "lucide-react";
+import { FlaskConical, Hash, Factory, Phone, AlertTriangle, FileText, Sparkles, Loader2, Zap, Save } from "lucide-react";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { updateFormField, setForm, resetForm, saveComplaintStart, saveComplaintSuccess, saveComplaintFailure } from "@/store/complaintsSlice";
 import { analyzeStart, analyzeSuccess, analyzeFailure } from "@/store/copilotSlice";
@@ -31,9 +15,6 @@ export default function ComplaintForm() {
   const { form, saving, saveError } = useAppSelector((s) => s.complaints);
   const { analyzing, hasResult, assessment } = useAppSelector((s) => s.copilot);
   const { groqApiKey } = useAppSelector((s) => s.settings);
-
-  // Local state to manage PDF / Document Upload
-  const [uploadedFile, setUploadedFile] = useState<{ name: string; size: string } | null>(null);
 
   const isFormValid =
     form.product_name.trim() &&
@@ -53,42 +34,6 @@ export default function ComplaintForm() {
 
   const handleClear = () => {
     dispatch(resetForm());
-    setUploadedFile(null);
-  };
-
-  // Handle PDF/Document Upload
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setUploadedFile({
-      name: file.name,
-      size: (file.size / 1024).toFixed(1) + " KB",
-    });
-
-    // Automatically select "PDF Report" or "Email" in complaint source if not set
-    if (!form.complaint_source) {
-      const extension = file.name.split('.').pop()?.toLowerCase();
-      if (extension === 'pdf') {
-        dispatch(updateFormField({ field: "complaint_source", value: "PDF Report" }));
-      }
-    }
-
-    // Attempt to read text content if it's a text/log file to pre-fill description
-    if (file.type.includes("text") || file.name.endsWith(".txt")) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const text = event.target?.result as string;
-        if (text && !form.description) {
-          dispatch(updateFormField({ field: "description", value: text }));
-        }
-      };
-      reader.readAsText(file);
-    }
-  };
-
-  const handleRemoveFile = () => {
-    setUploadedFile(null);
   };
 
   const handleAnalyze = async () => {
@@ -109,7 +54,6 @@ export default function ComplaintForm() {
       const saved = await saveComplaint(form, assessment);
       dispatch(saveComplaintSuccess(saved));
       dispatch(resetForm());
-      setUploadedFile(null);
     } catch (err) {
       dispatch(saveComplaintFailure(err instanceof Error ? err.message : "Save failed"));
     }
@@ -244,59 +188,12 @@ export default function ComplaintForm() {
               value={form.description}
               onChange={(e) => handleChange("description", e.target.value)}
               placeholder="Provide a detailed description of the complaint including observations, timeline, quantity affected, and any initial findings..."
-              rows={4}
+              rows={6}
               className="w-full resize-none rounded-lg border border-slate-700 bg-slate-800/50 px-3 py-2 text-sm text-white placeholder-slate-500 outline-none transition-colors focus:border-blue-500"
             />
             <p className="mt-1 text-right text-xs text-slate-500">
               {form.description.length} characters
             </p>
-          </div>
-
-          {/* New Drag & Drop PDF / Document Attachment Section */}
-          <div>
-            <label className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-slate-300">
-              <Paperclip className="h-3.5 w-3.5 text-slate-500" />
-              Attach Complaint PDF or Email Document (Optional)
-            </label>
-
-            {!uploadedFile ? (
-              <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-slate-700 rounded-lg cursor-pointer bg-slate-800/30 hover:bg-slate-800/60 hover:border-blue-500/50 transition-all">
-                <div className="flex flex-col items-center justify-center pt-3 pb-3">
-                  <Upload className="h-5 w-5 text-slate-400 mb-1" />
-                  <p className="text-xs text-slate-300 font-medium">
-                    <span className="text-blue-400 font-semibold">Click to upload PDF</span> or drag and drop
-                  </p>
-                  <p className="text-[10px] text-slate-500 mt-0.5">
-                    Supports PDF, DOCX, TXT or Email attachments (Max 10MB)
-                  </p>
-                </div>
-                <input
-                  type="file"
-                  className="hidden"
-                  accept=".pdf,.doc,.docx,.txt,.png,.jpg"
-                  onChange={handleFileUpload}
-                />
-              </label>
-            ) : (
-              <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-700 bg-slate-800/80">
-                <div className="flex items-center gap-2.5 overflow-hidden">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-blue-500/10 text-blue-400">
-                    <File className="h-4 w-4" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-xs font-medium text-white truncate">{uploadedFile.name}</p>
-                    <p className="text-[10px] text-slate-400">{uploadedFile.size} • Attached</p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleRemoveFile}
-                  className="p-1 rounded-md text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-            )}
           </div>
 
           {saveError && (

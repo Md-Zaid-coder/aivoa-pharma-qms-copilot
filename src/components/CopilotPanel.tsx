@@ -122,7 +122,7 @@ export default function CopilotPanel() {
                 <p className="text-xs text-amber-300">{assessment._message}</p>
               </div>
             )}
-
+            
             {/* Risk Badge & Completeness Score */}
             <div className="grid grid-cols-2 gap-3">
               <div className={`rounded-lg border ${riskCfg.border} ${riskCfg.bg} px-4 py-3`}>

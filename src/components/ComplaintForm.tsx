@@ -2,7 +2,7 @@ import { FlaskConical, Hash, Factory, Phone, AlertTriangle, FileText, Sparkles, 
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { updateFormField, setForm, resetForm, saveComplaintStart, saveComplaintSuccess, saveComplaintFailure } from "@/store/complaintsSlice";
 import { analyzeStart, analyzeSuccess, analyzeFailure } from "@/store/copilotSlice";
-import { analyzeComplaint, saveComplaint } from "@/lib/api";
+import { analyzeComplaint, saveComplaint, checkBackendConnection } from "@/lib/api";
 import { SAMPLE_COMPLAINTS } from "@/lib/sampleData";
 import type { ComplaintFormInput } from "@/types";
 
@@ -14,7 +14,7 @@ export default function ComplaintForm() {
   const dispatch = useAppDispatch();
   const { form, saving, saveError } = useAppSelector((s) => s.complaints);
   const { analyzing, hasResult, assessment } = useAppSelector((s) => s.copilot);
-  const { groqApiKey } = useAppSelector((s) => s.settings);
+  // const { groqApiKey } = useAppSelector((s) => s.settings);
 
   const isFormValid =
     form.product_name.trim() &&
@@ -40,7 +40,7 @@ export default function ComplaintForm() {
     if (!isFormValid || analyzing) return;
     dispatch(analyzeStart());
     try {
-      const result = await analyzeComplaint({ ...form, groqApiKey });
+      const result = await analyzeComplaint(form);
       dispatch(analyzeSuccess(result));
     } catch (err) {
       dispatch(analyzeFailure(err instanceof Error ? err.message : "Analysis failed"));

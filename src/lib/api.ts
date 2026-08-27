@@ -1,12 +1,11 @@
 import type { Complaint, ComplaintFormInput, CopilotAssessment } from "@/types";
-import { supabase } from "@/lib/supabase";
 
 // Get the API URL from environment or default to localhost
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 /**
- * Analyze a complaint using the FastAPI backend
- * The backend uses LangGraph + Groq to analyze the complaint
+ * Analyze a complaint using the FastAPI backend.
+ * The backend uses LangGraph + Groq to analyze the complaint.
  */
 export async function analyzeComplaint(
   params: ComplaintFormInput
@@ -50,74 +49,77 @@ export async function analyzeComplaint(
 }
 
 /**
- * Check if the backend is running and healthy
- * This replaces the old checkGroqConnection
+ * Check if the backend is running and healthy.
  */
-export async function checkBackendConnection(): Promise<{ connected: boolean; message: string }> {
+export async function checkBackendConnection(): Promise<{
+  connected: boolean;
+  message: string;
+}> {
   try {
     console.log("🔍 Checking backend connection...");
     const response = await fetch(`${API_URL}/api/health`);
-    
+
     if (response.ok) {
       const data = await response.json();
       console.log("✅ Backend connected:", data);
-      return { 
-        connected: true, 
-        message: "Backend connected" 
+      return {
+        connected: true,
+        message: "Backend connected",
       };
     }
-    
+
     console.error("❌ Backend error:", response.status);
-    return { 
-      connected: false, 
-      message: `Error ${response.status}` 
+    return {
+      connected: false,
+      message: `Error ${response.status}`,
     };
   } catch (error) {
     console.error("❌ Backend connection failed:", error);
-    return { 
-      connected: false, 
-      message: "Connection failed" 
+    return {
+      connected: false,
+      message: "Connection failed",
     };
   }
 }
 
 /**
- * DEPRECATED: This function is kept for backward compatibility
- * It now just checks backend health instead of Groq directly
- */
-export async function checkGroqConnection(
-  _apiKey: string
-): Promise<{ connected: boolean; message: string }> {
-  console.warn("⚠️ checkGroqConnection is deprecated. Use checkBackendConnection instead.");
-  return checkBackendConnection();
-}
-
-/**
- * Fetch all complaints from Supabase database
+ * Fetch all complaints from the FastAPI backend (SQLite database).
  */
 export async function fetchComplaints(): Promise<Complaint[]> {
-  const { data, error } = await supabase
-    .from("complaints")
-    .select("*")
-    .order("created_at", { ascending: false });
+  console.log("📥 Fetching complaints from backend...");
 
-  if (error) {
-    throw new Error(error.message);
+  try {
+    const response = await fetch(`${API_URL}/api/complaints`);
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    console.log(`✅ Complaints fetched: ${data.length} records`);
+    return (data || []) as Complaint[];
+  } catch (error) {
+    console.warn("⚠️ Could not fetch complaints from backend:", error);
+    // Return empty array instead of crashing — backend might not be running
+    return [];
   }
-
-  return (data || []) as Complaint[];
 }
 
 /**
- * Save a complaint and its analysis to Supabase database
+ * Save a complaint and its AI analysis to the FastAPI backend (SQLite database).
  */
 export async function saveComplaint(
   complaint: ComplaintFormInput,
   assessment: CopilotAssessment
 ): Promise<Complaint> {
-  const { data, error } = await supabase
-    .from("complaints")
-    .insert({
+  console.log("💾 Saving complaint to backend...");
+
+  const response = await fetch(`${API_URL}/api/complaints`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
       product_name: complaint.product_name,
       batch_number: complaint.batch_number,
       manufacturing_site: complaint.manufacturing_site,
@@ -130,13 +132,16 @@ export async function saveComplaint(
       root_cause: assessment.root_cause,
       capa_recommendation: assessment.capa_recommendation,
       audit_notes: assessment.audit_notes,
-    })
-    .select()
-    .single();
+    }),
+  });
 
-  if (error) {
-    throw new Error(error.message);
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error("❌ Save error:", response.status, errorText);
+    throw new Error(`Save failed: ${response.status} ${response.statusText}`);
   }
 
+  const data = await response.json();
+  console.log("✅ Complaint saved:", data);
   return data as Complaint;
 }

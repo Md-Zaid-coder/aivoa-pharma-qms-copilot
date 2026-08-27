@@ -385,8 +385,31 @@ Provide the structured JSON assessment as specified."""
 
 
 @app.post("/api/complaints", response_model=ComplaintRecord)
-async def save_complaint(complaint: ComplaintInput, analysis: AnalysisResult) -> ComplaintRecord:
-    """Save a new complaint with its AI analysis to the database."""
+async def save_complaint(payload: Dict[str, Any]) -> ComplaintRecord:
+    """
+    Save a new complaint with its AI analysis to the database.
+    Accepts a JSON payload containing both complaint data and analysis results.
+    """
+    # Extract complaint data
+    complaint = ComplaintInput(
+        product_name=payload.get("product_name"),
+        batch_number=payload.get("batch_number"),
+        manufacturing_site=payload.get("manufacturing_site"),
+        complaint_source=payload.get("complaint_source"),
+        severity_level=payload.get("severity_level"),
+        description=payload.get("description"),
+    )
+    
+    # Extract analysis data
+    analysis = AnalysisResult(
+        risk_level=payload.get("risk_level", "Major"),
+        completeness_score=payload.get("completeness_score", 50),
+        complaint_summary=payload.get("complaint_summary", ""),
+        root_cause=payload.get("root_cause", ""),
+        capa_recommendation=payload.get("capa_recommendation", ""),
+        audit_notes=payload.get("audit_notes", ""),
+    )
+    
     return save_complaint_to_db(complaint, analysis)
 
 
